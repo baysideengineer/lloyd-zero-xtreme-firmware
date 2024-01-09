@@ -18,8 +18,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "core/core_defines.h"
-#include "core/string.h"
 #include "furi_hal_rtc.h"
 #include "nfc_supported_card_plugin.h"
 
@@ -29,8 +27,6 @@
 #include <nfc/nfc_device.h>
 #include <nfc/helpers/nfc_util.h>
 #include <nfc/protocols/mf_classic/mf_classic_poller_sync.h>
-#include <stdbool.h>
-#include <stdint.h>
 
 #define TAG "Zolotaya Korona"
 
