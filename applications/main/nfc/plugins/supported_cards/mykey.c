@@ -1,8 +1,9 @@
 #include "nfc_supported_card_plugin.h"
+#include <flipper_application.h>
 
-#include <flipper_application/flipper_application.h>
-#include <machine/endian.h>
 #include <nfc/protocols/st25tb/st25tb.h>
+
+#include <machine/endian.h>
 
 #define TAG "MyKey"
 
@@ -13,7 +14,7 @@ static bool mykey_is_blank(const St25tbData* data) {
 }
 
 static bool mykey_has_lockid(const St25tbData* data) {
-    return (data->blocks[5] & 0xFF) == 0x7F;
+    return (data->blocks[5] >> 24) == 0x7F;
 }
 
 static bool check_invalid_low_nibble(uint8_t value) {

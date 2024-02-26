@@ -10,7 +10,7 @@ enum SubmenuIndex {
 
 static void nfc_scene_set_type_init_edit_data(Iso14443_3aData* data, size_t uid_len) {
     // Easiest way to create a zero'd buffer of given length
-    uint8_t* uid = malloc(uid_len);
+    uint8_t* uid = calloc(1, uid_len);
     iso14443_3a_set_uid(data, uid, uid_len);
     free(uid);
 }
@@ -52,15 +52,6 @@ bool nfc_scene_set_type_on_event(void* context, SceneManagerEvent event) {
         } else if(event.event == SubmenuIndexNFCA4) {
             nfc_scene_set_type_init_edit_data(instance->iso14443_3a_edit_data, 4);
             scene_manager_next_scene(instance->scene_manager, NfcSceneSetSak);
-            consumed = true;
-        } else if(
-            (event.event == NfcDataGeneratorTypeMfClassic1k_4b) ||
-            (event.event == NfcDataGeneratorTypeMfClassic1k_7b) ||
-            (event.event == NfcDataGeneratorTypeMfClassic4k_4b) ||
-            (event.event == NfcDataGeneratorTypeMfClassic4k_7b) ||
-            (event.event == NfcDataGeneratorTypeMfClassicMini)) {
-            nfc_data_generator_fill_data(event.event, instance->nfc_device);
-            scene_manager_next_scene(instance->scene_manager, NfcSceneSetUid);
             consumed = true;
         } else {
             nfc_data_generator_fill_data(event.event, instance->nfc_device);

@@ -48,7 +48,7 @@ static void desktop_lock_icon_draw_callback(Canvas* canvas, void* context) {
 static void desktop_clock_update(Desktop* desktop) {
     furi_assert(desktop);
 
-    FuriHalRtcDateTime curr_dt;
+    DateTime curr_dt;
     furi_hal_rtc_get_datetime(&curr_dt);
     bool time_format_12 = locale_get_time_format() == LocaleTimeFormat12h;
 
@@ -145,14 +145,12 @@ static void desktop_tick_event_callback(void* context) {
     scene_manager_handle_tick_event(app->scene_manager);
 }
 
-static void desktop_input_event_callback(const void* value, void* context) {
+static void desktop_auto_lock_callback(const void* value, void* context) {
     furi_assert(value);
     furi_assert(context);
-    const InputEvent* event = value;
+    UNUSED(value);
     Desktop* desktop = context;
-    if(event->type == InputTypePress) {
-        desktop_start_auto_lock_timer(desktop);
-    }
+    desktop_start_auto_lock_timer(desktop);
 }
 
 static void desktop_auto_lock_timer_callback(void* context) {
@@ -172,8 +170,14 @@ static void desktop_stop_auto_lock_timer(Desktop* desktop) {
 
 static void desktop_auto_lock_arm(Desktop* desktop) {
     if(desktop->settings.auto_lock_delay_ms) {
-        desktop->input_events_subscription = furi_pubsub_subscribe(
-            desktop->input_events_pubsub, desktop_input_event_callback, desktop);
+        if(desktop->input_events_subscription == NULL) {
+            desktop->input_events_subscription = furi_pubsub_subscribe(
+                desktop->input_events_pubsub, desktop_auto_lock_callback, desktop);
+        }
+        if(desktop->ascii_events_subscription == NULL) {
+            desktop->ascii_events_subscription = furi_pubsub_subscribe(
+                desktop->ascii_events_pubsub, desktop_auto_lock_callback, desktop);
+        }
         desktop_start_auto_lock_timer(desktop);
     }
 }
@@ -183,6 +187,10 @@ static void desktop_auto_lock_inhibit(Desktop* desktop) {
     if(desktop->input_events_subscription) {
         furi_pubsub_unsubscribe(desktop->input_events_pubsub, desktop->input_events_subscription);
         desktop->input_events_subscription = NULL;
+    }
+    if(desktop->ascii_events_subscription) {
+        furi_pubsub_unsubscribe(desktop->ascii_events_pubsub, desktop->ascii_events_subscription);
+        desktop->ascii_events_subscription = NULL;
     }
 }
 
@@ -284,7 +292,6 @@ Desktop* desktop_alloc() {
         desktop->view_dispatcher, desktop_back_event_callback);
 
     desktop->lock_menu = desktop_lock_menu_alloc();
-    desktop->debug_view = desktop_debug_alloc();
     desktop->hw_mismatch_popup = popup_alloc();
     desktop->locked_view = desktop_view_locked_alloc();
     desktop->pin_input_view = desktop_view_pin_input_alloc();
@@ -318,8 +325,6 @@ Desktop* desktop_alloc() {
         desktop->view_dispatcher,
         DesktopViewIdLockMenu,
         desktop_lock_menu_get_view(desktop->lock_menu));
-    view_dispatcher_add_view(
-        desktop->view_dispatcher, DesktopViewIdDebug, desktop_debug_get_view(desktop->debug_view));
     view_dispatcher_add_view(
         desktop->view_dispatcher,
         DesktopViewIdHwMismatch,
@@ -372,6 +377,8 @@ Desktop* desktop_alloc() {
 
     desktop->input_events_pubsub = furi_record_open(RECORD_INPUT_EVENTS);
     desktop->input_events_subscription = NULL;
+    desktop->ascii_events_pubsub = furi_record_open(RECORD_ASCII_EVENTS);
+    desktop->ascii_events_subscription = NULL;
 
     desktop->auto_lock_timer =
         furi_timer_alloc(desktop_auto_lock_timer_callback, FuriTimerTypeOnce, desktop);
